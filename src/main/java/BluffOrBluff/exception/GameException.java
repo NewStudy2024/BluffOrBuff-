@@ -1,4 +1,7 @@
 package BluffOrBluff.exception;
 
-public class GameException {
+public class GameException extends Exception {
+    public GameException(String message) {
+        super(message); // Pass error message to parent Exception
+    }
 }

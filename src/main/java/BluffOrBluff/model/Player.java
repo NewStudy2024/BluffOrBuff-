@@ -1,19 +1,17 @@
 package BluffOrBluff.model;
 
 import BluffOrBluff.exception.GameException;
-
-import java.util.ArrayList;
 import java.util.List;
 
 public class Player {
-    private String name;
+    private final String name;
     private int chips;
-    private List<Card> holeCards;
+    private Hand hand;
 
     public Player (String name, int chips) {
         this.name = name;
         this.chips = chips;
-        this.holeCards = new ArrayList<>();
+        this.hand = new Hand();
     }
 
     public String getName() {
@@ -24,15 +22,12 @@ public class Player {
         return chips;
     }
 
-    public List<Card> getHoleCards() {
-        return holeCards;
+    public Hand getHand() {
+        return hand;
     }
 
     public  void receiveCard(Card card) throws GameException {
-        if (holeCards.size() >= 2) {
-            throw new GameException(name + " already has 2 hole cards!");
-        }
-        holeCards.add(card);
+        hand.addCard(card);
     }
 
     public boolean placeBet(int amount) {
@@ -49,11 +44,15 @@ public class Player {
     }
 
     public void showCards() {
-        System.out.println(name + "'s hole cards: " + holeCards);
+        System.out.println(name + "'s hole cards: " + hand);
+    }
+
+    public List<Card> getFullHand(List<Card> communityCards) {
+        return hand.getFullHand(communityCards);
     }
 
     public void resetHand() {
-        holeCards.clear();
+        hand.resetHand();
     }
 
 }

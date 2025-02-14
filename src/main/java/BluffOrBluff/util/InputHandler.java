@@ -8,6 +8,7 @@ public class InputHandler {
     public static int getValidInt(int min, int max) {
         while (true) {
             try {
+                System.out.print("Choose an option: ");
                 int input = Integer.parseInt(scanner.nextLine().trim());
                 if (input >= min && input <= max) {
                     return input;

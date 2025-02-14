@@ -30,7 +30,6 @@ public class GameController {
                 System.out.println("AI is out of chips! You win the game!");
                 break;
             }
-
             playRound();
             if (!handlePostRoundOptions()) break;
         }
@@ -44,7 +43,8 @@ public class GameController {
     }
 
     private boolean handlePostRoundOptions() {
-        int choice = GameMenu.askBetweenGames();
+        GameMenu.showPostRoundMenu();
+        int choice = GameMenu.getPostRoundChoice();
         return switch (choice) {
             case 1 -> true;
             case 2 -> {
@@ -60,6 +60,7 @@ public class GameController {
     }
 
     private void changeDifficulty() {
-        this.difficulty = GameMenu.getDifficultySelection();
+        difficulty = GameMenu.getDifficultySelection();
+        System.out.println("Difficulty set to " + (difficulty == 1 ? "Beginner" : difficulty == 2 ? "Normal" : "Expert"));
     }
 }

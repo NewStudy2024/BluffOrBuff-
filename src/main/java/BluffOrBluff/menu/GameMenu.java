@@ -14,6 +14,10 @@ public class GameMenu {
         System.out.print("Choose an option: ");
     }
 
+    public static int getMenuChoice() {
+        return InputHandler.getValidInt(1, 3);
+    }
+
     public static void showRules() {
         System.out.println("\n========================== Poker Rules ==========================");
         System.out.println("1. Each player starts with two private cards.");
@@ -24,15 +28,22 @@ public class GameMenu {
         System.out.println("==================================================================");
     }
 
-    public static int getMenuChoice() {
-        return InputHandler.getValidInt(1, 3);
-    }
-
     public static void exitGame() {
         System.out.println("\nExiting game. Resetting everything...");
         scanner.close();
         System.out.println("Goodbye! See you next time.");
         System.exit(0);
+    }
+
+        public static void showPostRoundMenu() {
+        System.out.println("\n=== What would you like to do next? ===");
+        System.out.println("1. Play another round");
+        System.out.println("2. Change difficulty");
+        System.out.println("3. Exit game");
+    }
+
+    public static int getPostRoundChoice() {
+        return InputHandler.getValidInt(1, 3);
     }
 
     public static String askForPlayerName() {
@@ -44,15 +55,6 @@ public class GameMenu {
     public static int askForStartingChips() {
         System.out.print("\nEnter your starting chips (minimum 500, maximum 10000): ");
         return InputHandler.getValidInt(500, 10000);
-    }
-
-    public static int askBetweenGames() {
-        System.out.println("\n=== What would you like to do next? ===");
-        System.out.println("1. Play another round");
-        System.out.println("2. Change difficulty");
-        System.out.println("3. Exit game");
-        System.out.print("Choose an option: ");
-        return InputHandler.getValidInt(1, 3);
     }
 
     public static int getDifficultySelection() {

@@ -1,12 +1,11 @@
 package BluffOrBluff.menu;
 
+import BluffOrBluff.util.InputHandler;
 import java.util.Scanner;
-import BluffOrBluff.exception.GameException;
 
 public class GameMenu {
     private static final Scanner scanner = new Scanner(System.in);
 
-    // Displays the main menu options
     public static void showMainMenu() {
         System.out.println("\n=== Bluff or Buff: Poker Game ===");
         System.out.println("1. Start Game");
@@ -23,57 +22,44 @@ public class GameMenu {
         System.out.println("4. The best five-card hand wins at showdown.");
         System.out.println("5. Bluffing is key! Don't let AI read you.");
         System.out.println("==================================================================");
-
     }
 
-    public static int getMenuChoice() throws GameException {
-        while (true) {
-            return optionSelector();
-        }
+    public static int getMenuChoice() {
+        return InputHandler.getValidInt(1, 3);
     }
-
 
     public static void exitGame() {
         System.out.println("\nExiting game. Resetting everything...");
-
-        // Reset scanner
         scanner.close();
-
-        // TODO : reset everything
-
         System.out.println("Goodbye! See you next time.");
-        System.exit(0); // Forcefully exits the program
+        System.exit(0);
+    }
+
+    public static String askForPlayerName() {
+        System.out.print("\nEnter your name: ");
+        String name = scanner.nextLine().trim();
+        return name.isEmpty() ? "Player" : name;
+    }
+
+    public static int askForStartingChips() {
+        System.out.print("\nEnter your starting chips (minimum 500, maximum 10000): ");
+        return InputHandler.getValidInt(500, 10000);
     }
 
     public static int askBetweenGames() {
-        while (true) {
-            System.out.println("\n=== What would you like to do next? ===");
-            System.out.println("1. Play another round");
-            System.out.println("2. Change difficulty");
-            System.out.println("3. Exit game");
-            System.out.print("Choose an option: ");
-
-            optionSelector();
-        }
+        System.out.println("\n=== What would you like to do next? ===");
+        System.out.println("1. Play another round");
+        System.out.println("2. Change difficulty");
+        System.out.println("3. Exit game");
+        System.out.print("Choose an option: ");
+        return InputHandler.getValidInt(1, 3);
     }
 
-    private static int optionSelector() {
-        try {
-            int choice = Integer.parseInt(scanner.nextLine().trim());
-
-            return switch (choice) {
-                case 1, 2, 3 -> choice;
-                default -> {
-                    System.out.print("Invalid choice. Please enter 1, 2, or 3: ");
-                    yield -1;
-                }
-            };
-        } catch (NumberFormatException e) {
-            System.out.print("Invalid input. Please enter a number (1, 2, or 3): ");
-            return -1;
-        }
+    public static int getDifficultySelection() {
+        System.out.println("Select difficulty level:");
+        System.out.println("[1] Beginner");
+        System.out.println("[2] Normal");
+        System.out.println("[3] Expert");
+        return InputHandler.getValidInt(1, 3);
     }
-
-
 }
-

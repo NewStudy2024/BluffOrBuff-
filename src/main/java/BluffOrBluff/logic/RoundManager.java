@@ -3,11 +3,13 @@ package BluffOrBluff.logic;
 import BluffOrBluff.model.*;
 import BluffOrBluff.exception.GameException;
 import BluffOrBluff.util.InputHandler;
+import BluffOrBluff.ai.PokerAI;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class RoundManager {
+    private final PokerAI pokerAI;
     private Deck deck;
     private final Player human;
     private final Player ai;
@@ -23,6 +25,7 @@ public class RoundManager {
         this.pot = 0;
         this.difficulty = difficulty;
         this.currentStage = RoundStage.PRE_FLOP;
+        this.pokerAI = new PokerAI(ai, difficulty);
     }
 
     public void setDifficulty(int difficulty) {
@@ -83,7 +86,6 @@ public class RoundManager {
     }
 
     private void dealCommunityCards(int numCards) {
-        System.out.println("\nDealing " + numCards + " community card(s)...");
         for (int i = 0; i < numCards; i++) {
             communityCards.add(deck.dealCard());
         }
@@ -96,7 +98,7 @@ public class RoundManager {
         if (isAI) {
             // TODO implement AI decision-making
             System.out.println("AI decision-making not implemented yet.");
-            action = BettingAction.CALL; // TODO remove temp placeholder
+            action = pokerAI.getAIDecision(aiHandRank, currentBet, pot, currentStage);
         }
 
         else {
@@ -114,9 +116,6 @@ public class RoundManager {
             currentBet = player.getChips();
             pot += player.getChips();
             player.addChips(-player.getChips());
-            System.out.println("current pot: " + pot + ".");
-            System.out.println("AI has left: " + ai.getChips() + ".");
-            System.out.println("Player has left: " + human.getChips() + ".");
             return currentBet;
         }
 
@@ -127,9 +126,6 @@ public class RoundManager {
                 pot += raiseAmount;
                 currentBet += raiseAmount;
                 System.out.println(player.getName() + " raises by " + raiseAmount + " chips!");
-                System.out.println("Current pot: " + pot);
-                System.out.println("AI has left: " + ai.getChips() + ".");
-                System.out.println("Player has left: " + human.getChips() + ".");
                 return currentBet;
             } else {
                 System.out.println("Invalid raise amount. Try again.");
@@ -140,8 +136,6 @@ public class RoundManager {
         if (action == BettingAction.CHECK) {
             System.out.println(player.getName() + " checks.");
             System.out.println("Current pot: " + pot);
-            System.out.println("AI has left: " + ai.getChips() + ".");
-            System.out.println("Player has left: " + human.getChips() + ".");
             return currentBet;
         }
 
@@ -155,9 +149,6 @@ public class RoundManager {
             pot += callAmount;
             System.out.println(player.getName() + " calls the bet of " + callAmount + " chips.");
             System.out.println("current pot: " + pot);
-            System.out.println("AI has left: " + ai.getChips() + ".");
-            System.out.println("Player has left: " + human.getChips() + ".");
-
             return currentBet;
         }
 
@@ -230,10 +221,7 @@ public class RoundManager {
 
     private void determineRoundWinner() {
         System.out.println("\n--- SHOWDOWN ---");
-
         System.out.println("AI's hole cards: " + ai.getHand());
-
-        // TODO: Implement hand evaluation logic to compare hands
 
         HandRank humanHandRank = HandEvaluator.evaluateHand(human.getFullHand(communityCards));
         HandRank aiHandRank = HandEvaluator.evaluateHand(ai.getFullHand(communityCards));

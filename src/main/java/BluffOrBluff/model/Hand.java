@@ -15,8 +15,6 @@ public class Hand {
     public void addCard(Card card) throws GameException {
         if (cards.size() < 2) {
             cards.add(card);
-        } else {
-            throw new GameException("Cannot add more than two hole cards to a hand.");
         }
     }
 

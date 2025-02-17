@@ -96,8 +96,14 @@ public class RoundManager {
         BettingAction action;
 
         if (isAI) {
-            // TODO implement AI decision-making
             System.out.println("AI decision-making not implemented yet.");
+
+            HandRank aiHandRank;
+            if (currentStage == RoundStage.PRE_FLOP) {
+                aiHandRank = HandEvaluator.evaluateHand(ai.getHand().getCards());
+            } else {
+                aiHandRank = HandEvaluator.evaluateHand(ai.getFullHand(communityCards));
+            }
             action = pokerAI.getAIDecision(aiHandRank, currentBet, pot, currentStage);
         }
 

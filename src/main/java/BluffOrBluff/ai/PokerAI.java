@@ -43,7 +43,7 @@ public class PokerAI {
                     if (stage == RoundStage.RIVER && random.nextInt(100) < 40) {
                         return BettingAction.ALL_IN;
                     }
-                    return aiChips > 0 ? BettingAction.CALL : BettingAction.FOLD;l
+                    return aiChips > 0 ? BettingAction.CALL : BettingAction.FOLD;
                 }
             }
         }

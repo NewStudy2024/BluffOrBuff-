@@ -7,15 +7,20 @@ import BluffOrBluff.util.InputHandler;
 public class GameController {
     private final Player human;
     private final Player ai;
+    private final Deck deck;
+    private final RoundManager roundManager;
     private int difficulty;
 
     public GameController(int difficulty) {
         String playerName = GameMenu.askForPlayerName();
-        int startingChips = GameMenu.askForStartingChips();
 
-        this.human = new Player(playerName, startingChips);
-        this.ai = new Player("AI", startingChips);
+        this.human = new Player(playerName, 1000); // Default starting chips
+        this.ai = new Player("AI", 1000);
         this.difficulty = difficulty;
+
+        this.deck = new Deck();
+        deck.shuffle();
+        this.roundManager = new RoundManager(deck, human, ai, difficulty);
     }
 
     public void startGame() {
@@ -30,16 +35,9 @@ public class GameController {
                 System.out.println("AI is out of chips! You win the game!");
                 break;
             }
-            playRound();
+            roundManager.playRound();
             if (!handlePostRoundOptions()) break;
         }
-    }
-
-    private void playRound() {
-        Deck deck = new Deck();
-        deck.shuffle();
-        RoundManager roundManager = new RoundManager(deck, human, ai, difficulty);
-        roundManager.playRound();
     }
 
     private boolean handlePostRoundOptions() {
@@ -52,7 +50,7 @@ public class GameController {
                 yield true;
             }
             case 3 -> {
-                System.out.println("Thanks for playing!");
+                GameMenu.exitGame();
                 yield false;
             }
             default -> throw new IllegalStateException("Unexpected value: " + choice);

@@ -17,6 +17,7 @@ public class RoundManager {
     private int pot;
     private int difficulty;
     private RoundStage currentStage;
+    private int roundCounter = 0;
 
     public RoundManager(Deck deck, Player human, Player ai, int difficulty) {
         this.deck = deck;
@@ -42,23 +43,27 @@ public class RoundManager {
             return;
         }
 
+        boolean aiGoesFirst = (roundCounter % 2 == 0);
+
         currentStage = RoundStage.PRE_FLOP;
-        if (!bettingPhase()) return;
+        if (!bettingPhase(aiGoesFirst)) return;
 
         currentStage = RoundStage.FLOP;
         dealCommunityCards(3);
-        if (!bettingPhase()) return;
+        if (!bettingPhase(aiGoesFirst)) return;
 
         currentStage = RoundStage.TURN;
         dealCommunityCards(1);
-        if (!bettingPhase()) return;
+        if (!bettingPhase(aiGoesFirst)) return;
 
         currentStage = RoundStage.RIVER;
         dealCommunityCards(1);
-        if (!bettingPhase()) return;
+        if (!bettingPhase(aiGoesFirst)) return;
 
         currentStage = RoundStage.SHOWDOWN;
         determineRoundWinner();
+
+        roundCounter++;  // Move to the next round after a full hand is completed
 
     }
 
@@ -96,14 +101,17 @@ public class RoundManager {
         BettingAction action;
 
         if (isAI) {
-            System.out.println("AI decision-making not implemented yet.");
-
-            HandRank aiHandRank;
+            HandRank aiHandRank = null;
             if (currentStage == RoundStage.PRE_FLOP) {
                 aiHandRank = HandEvaluator.evaluateHand(ai.getHand().getCards());
             } else {
                 aiHandRank = HandEvaluator.evaluateHand(ai.getFullHand(communityCards));
             }
+
+            if (aiHandRank == null) {
+                throw new IllegalStateException("AI hand evaluation failed.");
+            }
+
             action = pokerAI.getAIDecision(aiHandRank, currentBet, pot, currentStage);
         }
 
@@ -187,40 +195,49 @@ public class RoundManager {
         }
     }
 
-    private boolean bettingPhase() {
+    private boolean bettingPhase(boolean aiGoesFirst) {
         System.out.println("\n--- " + currentStage + " Betting Phase ---");
 
         int currentBet = 0;
 
-        int newBet = processBettingTurn(human, false, currentBet);
-        if (newBet == -1) {
-            System.out.println("AI wins the round.");
-            ai.addChips(pot);
-            System.out.println("current pot: " + pot);
-            System.out.println("AI has left: " + ai.getChips() + ".");
-            System.out.println("Player has left: " + human.getChips() + ".");
-            return false;
-        }
-        currentBet = newBet;
+        if (aiGoesFirst) {
+            // AI acts first
+            int newBet = processBettingTurn(ai, true, currentBet);
+            if (newBet == -1) {
+                System.out.println(human.getName() + " wins the round.");
+                human.addChips(pot);
+                return false;
+            }
 
-        newBet = processBettingTurn(ai, true, currentBet);
-        if (newBet == -1) {
-            System.out.println(human.getName() + " wins the round.");
-            human.addChips(pot);
-            System.out.println("current pot: " + pot);
-            System.out.println("AI has left: " + ai.getChips() + ".");
-            System.out.println("Player has left: " + human.getChips() + ".");
-            return false;
+            newBet = processBettingTurn(human, false, newBet);
+            if (newBet == -1) {
+                System.out.println("AI wins the round.");
+                ai.addChips(pot);
+                return false;
+            }
+        } else {
+            // Human acts first
+            int newBet = processBettingTurn(human, false, currentBet);
+            if (newBet == -1) {
+                System.out.println("AI wins the round.");
+                ai.addChips(pot);
+                return false;
+            }
+
+            newBet = processBettingTurn(ai, true, newBet);
+            if (newBet == -1) {
+                System.out.println(human.getName() + " wins the round.");
+                human.addChips(pot);
+                return false;
+            }
         }
-        currentBet = newBet;
 
         System.out.println("Total pot: " + pot + " chips (Current Bet: " + currentBet + ")");
-
         return true;
     }
 
     private int getRaiseAmount(int playerChips, int currentBet) {
-        int minRaise = currentBet == 0 ? 10 : currentBet * 2;
+        int minRaise = currentBet == 0 ? 50 : currentBet + 50;
         System.out.println("Enter raise amount (Minimum: " + minRaise + " chips, Maximum: " + playerChips + " chips):");
         return InputHandler.getValidInt(minRaise, playerChips);
     }

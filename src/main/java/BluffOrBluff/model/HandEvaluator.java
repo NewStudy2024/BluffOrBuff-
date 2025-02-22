@@ -26,8 +26,8 @@ public class HandEvaluator {
         if (hasNOfAKind(rankCount, 3)) return new HandRank("Three of a Kind", getHighCardForRank(rankCount, 3));
         if (hasTwoPair(rankCount)) return new HandRank("Two Pair", getTwoPairRanks(rankCount, playerHand));
         if (hasNOfAKind(rankCount, 2)) return new HandRank("One Pair", getHighCardForRank(rankCount, 2));
-
         return new HandRank("High Card", highCards);
+
     }
 
     private static List<Integer> getSortedRanks(List<Card> hand) {
@@ -130,6 +130,32 @@ public class HandEvaluator {
         List<Card.Rank> royalRanks = List.of(Card.Rank.TEN, Card.Rank.JACK, Card.Rank.QUEEN, Card.Rank.KING, Card.Rank.ACE);
         return isStraightFlush(hand) && hand.stream().allMatch(card -> royalRanks.contains(card.getRank()));
     }
+
+    public static int getPreFlopHandStrength(List<Card> holeCards) {
+        if (holeCards.size() != 2) {
+            throw new IllegalArgumentException("Pre-flop hand must have exactly 2 cards.");
+        }
+
+        Card.Rank rank1 = holeCards.get(0).getRank();
+        Card.Rank rank2 = holeCards.get(1).getRank();
+        boolean suited = holeCards.get(0).getSuit() == holeCards.get(1).getSuit();
+
+        // Use a simple pre-flop ranking (higher number = stronger hand)
+        if ((rank1 == Card.Rank.ACE && rank2 == Card.Rank.KING) || (rank1 == Card.Rank.KING && rank2 == Card.Rank.ACE)) {
+            return suited ? 9 : 8; // AK suited is stronger
+        }
+        if (rank1 == rank2) { // Pocket pairs
+            return 7 + rank1.ordinal();
+        }
+        if ((rank1 == Card.Rank.ACE || rank2 == Card.Rank.ACE) && (rank1.ordinal() >= Card.Rank.TEN.ordinal() || rank2.ordinal() >= Card.Rank.TEN.ordinal())) {
+            return 7; // A-Q, A-J
+        }
+        if (rank1.ordinal() >= Card.Rank.TEN.ordinal() && rank2.ordinal() >= Card.Rank.TEN.ordinal()) {
+            return suited ? 7 : 6; // High connectors (J-Q, Q-K)
+        }
+        return 1; // Default weak hand
+    }
+
 
     public static int getHandRankValue(String rank) {
         return switch (rank) {

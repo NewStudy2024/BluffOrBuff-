@@ -18,6 +18,8 @@ public class RoundManager {
     private int difficulty;
     private RoundStage currentStage;
     private int roundCounter = 0;
+    private boolean playerAllIn;
+    private boolean aiAllIn;
 
     public RoundManager(Deck deck, Player human, Player ai, int difficulty) {
         this.deck = deck;
@@ -27,6 +29,8 @@ public class RoundManager {
         this.difficulty = difficulty;
         this.currentStage = RoundStage.PRE_FLOP;
         this.pokerAI = new PokerAI(ai, difficulty);
+        this.playerAllIn = false;
+        this.aiAllIn = false;
     }
 
     public void setDifficulty(int difficulty) {
@@ -127,6 +131,8 @@ public class RoundManager {
 
         if (action == BettingAction.ALL_IN) {
             System.out.println(player.getName() + " goes ALL-IN with " + player.getChips() + " chips!");
+            if (isAI) aiAllIn = true;
+            else playerAllIn = true;
             currentBet = player.getChips();
             pot += player.getChips();
             player.addChips(-player.getChips());
@@ -182,6 +188,14 @@ public class RoundManager {
                 case 4 -> BettingAction.FOLD;
                 default -> throw new IllegalStateException("Unexpected value: " + choice);
             };
+        } else if (playerAllIn || aiAllIn) {
+            System.out.println("[1] Call  [2] Fold");
+            int choice = InputHandler.getValidInt(1, 2);
+            return switch (choice) {
+                case 1 -> BettingAction.CALL;
+                case 2 -> BettingAction.FOLD;
+                default -> throw new IllegalStateException("Unexpected value: " + choice);
+            };
         } else { // Active bet → Player must Call, Raise, Fold, or All-In
             System.out.println("[1] Call  [2] Raise  [3] All-In  [4] Fold");
             int choice = InputHandler.getValidInt(1, 4);
@@ -199,47 +213,54 @@ public class RoundManager {
         System.out.println("\n--- " + currentStage + " Betting Phase ---");
 
         int currentBet = 0;
-
-        if (aiGoesFirst) {
-            // AI acts first
-            int newBet = processBettingTurn(ai, true, currentBet);
-            if (newBet == -1) {
-                System.out.println(human.getName() + " wins the round.");
-                human.addChips(pot);
-                return false;
-            }
-
-            newBet = processBettingTurn(human, false, newBet);
-            if (newBet == -1) {
-                System.out.println("AI wins the round.");
-                ai.addChips(pot);
-                return false;
-            }
-        } else {
-            // Human acts first
-            int newBet = processBettingTurn(human, false, currentBet);
-            if (newBet == -1) {
-                System.out.println("AI wins the round.");
-                ai.addChips(pot);
-                return false;
-            }
-
-            newBet = processBettingTurn(ai, true, newBet);
-            if (newBet == -1) {
-                System.out.println(human.getName() + " wins the round.");
-                human.addChips(pot);
-                return false;
-            }
-        }
+        System.out.println("\n[DEBUG] Ai first:" + aiGoesFirst);
 
         System.out.println("Total pot: " + pot + " chips (Current Bet: " + currentBet + ")");
+        System.out.println("AI chips: " + ai.getChips());
+        System.out.println(human.getName()+ "´s chips: " + human.getChips());
+
+        if (aiGoesFirst) {
+            int newBet = processBettingTurn(ai, true, currentBet);
+            if (newBet == -1) return handleFold(human);
+            if (aiAllIn) return handleAllInScenario();
+
+            newBet = processBettingTurn(human, false, newBet);
+            if (newBet == -1) return handleFold(ai);
+            if (playerAllIn) return handleAllInScenario();
+        } else {
+            int newBet = processBettingTurn(human, false, currentBet);
+            if (newBet == -1) return handleFold(ai);
+            if (playerAllIn) return handleAllInScenario();
+
+            newBet = processBettingTurn(ai, true, newBet);
+            if (newBet == -1) return handleFold(human);
+            if (aiAllIn) return handleAllInScenario();
+        }
         return true;
     }
+
+    private boolean handleAllInScenario() {
+        System.out.println("A player is All-In! Moving directly to Showdown.");
+        int communityCardsNum = communityCards.size();
+        if (communityCardsNum != 5) {
+            dealCommunityCards(5-communityCardsNum);
+        }
+        determineRoundWinner();
+
+        return false;
+    }
+
 
     private int getRaiseAmount(int playerChips, int currentBet) {
         int minRaise = currentBet == 0 ? 50 : currentBet + 50;
         System.out.println("Enter raise amount (Minimum: " + minRaise + " chips, Maximum: " + playerChips + " chips):");
         return InputHandler.getValidInt(minRaise, playerChips);
+    }
+
+    private boolean handleFold(Player winner) {
+        System.out.println(winner.getName() + " wins the round.");
+        winner.addChips(pot);
+        return false;
     }
 
     private void determineRoundWinner() {
@@ -263,5 +284,7 @@ public class RoundManager {
             human.addChips(pot / 2);
             ai.addChips(pot / 2);
         }
+        System.out.println("AI chips: " + ai.getChips()); //TODO: do this a bit more elegantly
+        System.out.println(human.getName() + " chips: " + human.getChips());
     }
 }

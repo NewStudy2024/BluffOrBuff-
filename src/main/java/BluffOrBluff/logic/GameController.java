@@ -2,7 +2,6 @@ package BluffOrBluff.logic;
 
 import BluffOrBluff.model.*;
 import BluffOrBluff.menu.GameMenu;
-import BluffOrBluff.util.InputHandler;
 
 public class GameController {
     private final Player human;
@@ -11,10 +10,8 @@ public class GameController {
     private final RoundManager roundManager;
     private int difficulty;
 
-    public GameController(int difficulty) {
-        String playerName = GameMenu.askForPlayerName();
-
-        this.human = new Player(playerName, 1000); // Default starting chips
+    public GameController(String playerName, int difficulty) {
+        this.human = new Player(playerName, 1000); // Default starting chips //TODO: ask player how much money they want to start with
         this.ai = new Player("AI", 1000);
         this.difficulty = difficulty;
 
@@ -25,7 +22,7 @@ public class GameController {
 
     public void startGame() {
         System.out.println("Welcome to Bluff or Buff - Texas Hold'em!");
-        System.out.println(human.getName() + " starts with " + human.getChips() + " chips.");
+        System.out.println(human.getName() + " starts with " + human.getChips() + " chips."); //TODO: change this to ask how much money they want to start with
 
         while (true) {
             if (human.getChips() <= 0) {

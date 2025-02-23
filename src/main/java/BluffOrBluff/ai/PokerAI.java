@@ -30,10 +30,10 @@ public class PokerAI {
         BettingAction action;
 
         System.out.println("\n[DEBUG] AI Decision:");
-        System.out.println("  - Hand Strength: " + handStrength);
+//        System.out.println("  - Hand Strength: " + handStrength); TODO: temporary
         System.out.println("  - AI Chips: " + aiChips);
-        System.out.println("  - Current Bet: " + currentBet);
-        System.out.println("  - Pot Size: " + pot);
+//        System.out.println("  - Current Bet: " + currentBet); TODO: should be moved to round manager
+//        System.out.println("  - Pot Size: " + pot); TODO: should be also moved to round manager
         System.out.println("  - Stage: " + stage);
 
         // AI cannot fold if it has 0 chips - it must check and go to showdown
@@ -80,9 +80,9 @@ public class PokerAI {
     private BettingAction handleRegularBetting(int handStrength, int aiChips, int currentBet, int pot, RoundStage stage) {
         System.out.println("\n[DEBUG] Regular Betting Analysis:");
         System.out.println("  - AI Chips: " + aiChips);
-        System.out.println("  - Hand Strength: " + handStrength);
-        System.out.println("  - Current Bet: " + currentBet);
-        System.out.println("  - Pot: " + pot);
+//        System.out.println("  - Hand Strength: " + handStrength); TODO: temporary
+//        System.out.println("  - Current Bet: " + currentBet); TODO: should be moved to round manager
+//        System.out.println("  - Pot: " + pot);  TODO: should be also moved to round manager
         System.out.println("  - Stage: " + stage);
 
         switch (difficulty) {

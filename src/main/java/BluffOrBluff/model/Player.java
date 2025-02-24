@@ -22,6 +22,10 @@ public class Player {
         return chips;
     }
 
+    public void moneyLost() {
+        chips = 0;
+    }
+
     public Hand getHand() {
         return hand;
     }

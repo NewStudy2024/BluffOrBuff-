@@ -42,6 +42,11 @@ public class Deck {
         }
     }
 
+    public void removeCards(List<Card> cardsToRemove) {
+        cards.removeAll(cardsToRemove);
+    }
+
+
     public static void testDeck(Deck deck) {
         deck.printDeck();
         deck.shuffle();

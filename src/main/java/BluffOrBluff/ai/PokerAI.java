@@ -16,27 +16,25 @@ public class PokerAI {
     }
 
     public BettingAction getAIDecision(HandRank aiHandRank, int currentBet, int pot, RoundStage stage) {
-        int handStrength = HandEvaluator.getHandRankValue(aiHandRank.getRank());
-
+        // int handStrength = HandEvaluator.getHandRankValue(aiHandRank.getRank()); TODO if anomaly revert
+        int handStrength;
+        int aiChips = ai.getChips();
+        BettingAction action;
 
         if (stage == RoundStage.PRE_FLOP) {
-            handStrength = HandEvaluator.getPreFlopHandStrength(ai.getHand().getCards());
-//            System.out.println("  - Pre-Flop Hand Strength: " + handStrength); TODO remove later
+            return BettingAction.CALL;
         } else {
             handStrength = HandEvaluator.getHandRankValue(aiHandRank.getRank());
         }
 
-        int aiChips = ai.getChips();
-        BettingAction action;
+        //        System.out.println("\n[DEBUG] AI Decision:");
+        //        System.out.println("  - Hand Strength: " + handStrength); TODO: temporary
+        ////        System.out.println("  - AI Chips: " + aiChips);
+        ////        System.out.println("  - Current Bet: " + currentBet); TODO: should be moved to round manager
+        ////        System.out.println("  - Pot Size: " + pot); TODO: should be also moved to round manager
+        //        System.out.println("  - Stage: " + stage);
 
-//        System.out.println("\n[DEBUG] AI Decision:");
-////        System.out.println("  - Hand Strength: " + handStrength); TODO: temporary
-//        System.out.println("  - AI Chips: " + aiChips);
-////        System.out.println("  - Current Bet: " + currentBet); TODO: should be moved to round manager
-////        System.out.println("  - Pot Size: " + pot); TODO: should be also moved to round manager
-//        System.out.println("  - Stage: " + stage);
-
-        // AI cannot fold if it has 0 chips - it must check and go to showdown
+                // AI cannot fold if it has 0 chips - it must check and go to showdown
         if (aiChips == 0) {
 //            System.out.println("  - AI has no chips left → CHECK (forced showdown)"); TODO removrd for clean check
             return BettingAction.CHECK;
@@ -49,11 +47,69 @@ public class PokerAI {
             return action;
         }
 
-        // AI has enough chips, use normal betting strategy
+        // AI has enough chips normal betting
         action = handleRegularBetting(handStrength, aiChips, currentBet, pot, stage);
 //        System.out.println("  - AI Regular Decision: " + action); TODO removrd for clean check
         return action;
     }
+
+    public int decideOnRaise(int currentBet, int pot, HandRank aiHandRank) {
+        int handStrength = HandEvaluator.getHandRankValue(aiHandRank.getRank());
+        int aiChips = ai.getChips();
+
+        if (handStrength < 3 && currentBet > aiChips / 3) {
+        int foldChance = difficulty == 1 ? 10 : (difficulty == 2 ? 30 : 50);
+        if (random.nextInt(100) < foldChance) return currentBet; // AI calls more often
+        return -1; // Otherwise, AI folds (only sometimes)
+        }
+
+
+        // AI Calls if already committed or if pot odds are favorable
+        double potOdds = (double) currentBet / (pot + currentBet);
+        double aiCallChance = (handStrength * 0.15) + (1 - potOdds) + (difficulty * 0.05);
+        if (random.nextDouble() < aiCallChance) {
+            return currentBet;
+        }
+
+        if (currentBet == 0) { // Check
+            return 0;
+        }
+
+        // raise only if it has a strong hand and hasn't matched the bet
+        if (handStrength >= 6 && currentBet < aiChips / 2) {
+            int raiseAmount = Math.min(currentBet + 50, aiChips); // Ensures AI doesn't overbet
+            return raiseAmount;
+        }
+
+        return currentBet;
+    }
+
+
+    public int decideAllInCall(int currentBet, int pot, HandRank aiHandRank, int difficulty) {
+        int handStrength = HandEvaluator.getHandRankValue(aiHandRank.getRank());
+
+        // Consider Pot Odds for decision
+        double potOdds = (double) currentBet / (pot + currentBet);
+
+        switch (difficulty) {
+            case 1:
+                if (handStrength < 6 || potOdds > 0.5) return 2; // Fold if hand is weak or risk is high
+                return 1; // Call if hand is decent
+
+            case 2:
+                if (handStrength >= 7 || potOdds < 0.4) return 1; // Call with good hand or low risk
+                return 2; // Otherwise fold
+
+            case 3:
+                if (handStrength >= 5 || potOdds < 0.6) return 1; // More willing to call
+                return 2; // Otherwise, fold
+
+            default:
+                return 1; // Default to calling
+        }
+    }
+
+
 
     // 🔹 Handles AI betting when it has fewer chips than the current bet
     private BettingAction handleShortStackDecision(int handStrength, RoundStage stage) {
@@ -87,7 +143,7 @@ public class PokerAI {
 
         switch (difficulty) {
             case 1: // 🔴 Beginner AI: Passive, folds weak hands
-                if (handStrength < 4) {
+                if (handStrength < 2) {
 //                    System.out.println("  - Weak hand → FOLD");
                     return currentBet == 0 ? BettingAction.CHECK : BettingAction.FOLD; // Check if no bet
                 }
@@ -115,10 +171,16 @@ public class PokerAI {
 //                    System.out.println("  - Strong hand OR river bluff → RAISE");
                     return BettingAction.RAISE;
                 }
-                if (random.nextInt(100) < 10) {// Small bluff chance
+                if (random.nextInt(100) < 30) {// Small bluff chance
 //                    System.out.println("  - Small bluff → BET");
                     return BettingAction.BET;
                 }
+                if (random.nextInt(100) < 40 || (stage == RoundStage.RIVER && random.nextInt(100) < 50)) {
+//                    System.out.println("  - Small bluff → BET");
+                    return BettingAction.BET; // AI raises 40% of the time (50% on river)
+                }
+
+
 //                System.out.println("  - Default: CALL");
                 return BettingAction.CALL;
 
@@ -143,9 +205,9 @@ public class PokerAI {
 //                    System.out.println("  - Very strong hand OR big river bluff → ALL IN");
                     return BettingAction.ALL_IN;
                 }
-                if (random.nextInt(100) < 20) { // Expert AI bluffs more
-//                    System.out.println("  - More aggressive bluff → BET");
-                    return BettingAction.BET;
+                if (random.nextInt(100) < 40 || (stage == RoundStage.RIVER && random.nextInt(100) < 50)) {
+//                    System.out.println("  - More aggressive bluff → BET")?
+                    return BettingAction.BET; // **🔹 AI now bluffs 40% (50% on River)**
                 }
 //                System.out.println("  - Default: CALL");
                 return BettingAction.CALL;

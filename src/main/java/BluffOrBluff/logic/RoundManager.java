@@ -122,7 +122,7 @@ public class RoundManager {
 
         if (isAI) {
             HandRank aiHandRank = HandEvaluator.evaluateHand(ai.getFullHand(communityCards));
-            action = pokerAI.getAIDecision(aiHandRank, currentBet, pot, currentStage);
+            action = pokerAI.getAIDecision(aiHandRank, currentBet, pot, currentStage, communityCards);
         } else {
             action = getPlayerDecision(currentBet, player.getChips());
             System.out.println(player.getName() + " chooses: " + action);
@@ -131,10 +131,10 @@ public class RoundManager {
         switch (action) {
             case FOLD:
                 System.out.println(player.getName() + " folded.");
-                return -1; // Player is out of the round
+            return -1;
 
             case ALL_IN:
-                int allInAmount = Math.min(player.getChips(), currentBet); // Prevent overbetting
+            int allInAmount = Math.min(player.getChips(), currentBet);
                 System.out.println(player.getName() + " goes ALL-IN with " + allInAmount + " chips!");
                 if (isAI) aiAllIn = true;
                 else playerAllIn = true;
@@ -143,12 +143,18 @@ public class RoundManager {
                 return allInAmount;
 
             case RAISE:
-                int raiseAmount = getRaiseAmount(player.getChips(), currentBet);
+                int raiseAmount;
+                if (isAI) {
+                    raiseAmount = Math.min(50 + (difficulty * 25), player.getChips());
+                    if (currentBet > 0) raiseAmount = Math.min(currentBet + raiseAmount, player.getChips());
+                } else {
+                    raiseAmount = getRaiseAmount(player.getChips(), currentBet);
+                }
+
                 player.addChips(-raiseAmount);
                 pot += raiseAmount;
-                currentBet += raiseAmount;
                 System.out.println(player.getName() + " raises by " + raiseAmount + " chips!");
-                return currentBet;
+                return raiseAmount;
 
             case CALL:
                 int callAmount =Math.min(currentBet, player.getChips());
@@ -156,7 +162,7 @@ public class RoundManager {
                 player.addChips(-callAmount);
                 pot += callAmount;
                 System.out.println(player.getName() + " calls the bet of " + callAmount + " chips.");
-                return currentBet; // **Returns the same bet amount instead of overwriting it**
+                return currentBet; // Returns the same bet amount instead of overwriting it**
 
             case CHECK:
                 System.out.println(player.getName() + " checks.");

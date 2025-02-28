@@ -2,6 +2,9 @@ package BluffOrBluff.ai;
 
 import BluffOrBluff.model.*;
 import BluffOrBluff.logic.RoundStage;
+import BluffOrBluff.simulation.MonteCarloSimulator;
+
+import java.util.List;
 import java.util.Random;
 
 public class PokerAI {
@@ -15,52 +18,131 @@ public class PokerAI {
         this.random = new Random();
     }
 
-    public BettingAction getAIDecision(HandRank aiHandRank, int currentBet, int pot, RoundStage stage) {
+    public BettingAction getAIDecision(HandRank aiHandRank, int currentBet, int pot, RoundStage stage, List<Card> communityCards) {
         // int handStrength = HandEvaluator.getHandRankValue(aiHandRank.getRank()); TODO if anomaly revert
-        int handStrength;
+        //int handStrength;
         int aiChips = ai.getChips();
-        BettingAction action;
 
+        if (aiChips == 0) {
+            return BettingAction.CHECK; // No chips left
+        }
+
+        // Short-stack scenario
+        if (aiChips < currentBet) {
+            int handStrength = HandEvaluator.getHandRankValue(aiHandRank.getRank());
+            return handleShortStackDecision(handStrength, stage);
+        }
+
+        // Pre-flop uses simple strategy
         if (stage == RoundStage.PRE_FLOP) {
             return BettingAction.CALL;
+        }
+
+        // Post-flop uses Monte Carlo simulation
+        List<Card> aiCards = ai.getHand().getCards();
+        double winProbability;
+
+        // Different simulation depths based on difficulty
+        if (difficulty == 3) {
+            // Expert AI - full simulation
+            MonteCarloSimulator simulator = new MonteCarloSimulator(aiCards, communityCards);
+            winProbability = simulator.estimateWinProbability();
+        } else if (difficulty == 2) {
+            // Normal AI - adaptive simulation with confidence threshold
+            MonteCarloSimulator simulator = new MonteCarloSimulator(aiCards, communityCards, 3000);
+            winProbability = simulator.estimateWithConfidence(0.02);
         } else {
-            handStrength = HandEvaluator.getHandRankValue(aiHandRank.getRank());
+            // Beginner AI - quick estimate
+            MonteCarloSimulator simulator = new MonteCarloSimulator(aiCards, communityCards, 1000);
+            winProbability = simulator.quickEstimate();
         }
 
-        //        System.out.println("\n[DEBUG] AI Decision:");
-        //        System.out.println("  - Hand Strength: " + handStrength); TODO: temporary
-        ////        System.out.println("  - AI Chips: " + aiChips);
-        ////        System.out.println("  - Current Bet: " + currentBet); TODO: should be moved to round manager
-        ////        System.out.println("  - Pot Size: " + pot); TODO: should be also moved to round manager
-        //        System.out.println("  - Stage: " + stage);
-
-                // AI cannot fold if it has 0 chips - it must check and go to showdown
-        if (aiChips == 0) {
-//            System.out.println("  - AI has no chips left → CHECK (forced showdown)"); TODO removrd for clean check
-            return BettingAction.CHECK;
-        }
-
-        // If AI has fewer chips than the current bet, handle the short-stack scenario
-        if (aiChips < currentBet) {
-            action = handleShortStackDecision(handStrength, stage);
-//            System.out.println("  - AI Short-Stack Decision: " + action); TODO removrd for clean check
-            return action;
-        }
-
-        // AI has enough chips normal betting
-        action = handleRegularBetting(handStrength, aiChips, currentBet, pot, stage);
-//        System.out.println("  - AI Regular Decision: " + action); TODO removrd for clean check
-        return action;
+        return makeProbabilityBasedDecision(winProbability, currentBet, pot, stage, aiChips);
     }
 
+    private BettingAction makeProbabilityBasedDecision(double winProbability, int currentBet, int pot, RoundStage stage, int aiChips) {
+        // Calculate pot odds for decision making
+        double potOdds = currentBet > 0 ? (double) currentBet / (pot + currentBet) : 0;
+
+        if (difficulty == 1) { // Beginner AI - simple decisions
+            if (winProbability < 0.3) {
+                return currentBet == 0 ? BettingAction.CHECK : BettingAction.FOLD;
+            }
+            if (winProbability < 0.5) {
+                return currentBet == 0 ? BettingAction.CHECK : BettingAction.CALL;
+            }
+            if (winProbability > 0.7 && random.nextInt(100) < 30) {
+                return BettingAction.RAISE;
+            }
+            return currentBet == 0 ? BettingAction.BET : BettingAction.CALL;
+        } else if (difficulty == 2) { // Normal AI - moderate strategy
+            if (winProbability < 0.25 && currentBet > 0) {
+                return BettingAction.FOLD;
+            }
+            if (winProbability < 0.45) {
+                return currentBet == 0 ? BettingAction.CHECK : BettingAction.CALL;
+            }
+            if (winProbability < 0.6 && random.nextInt(100) < 20 && stage == RoundStage.RIVER) {
+                return currentBet == 0 ? BettingAction.BET : BettingAction.RAISE;
+            }
+            if (winProbability > 0.6) {
+                return currentBet == 0 ? BettingAction.BET : BettingAction.RAISE;
+            }
+            return currentBet == 0 ? BettingAction.CHECK : BettingAction.CALL;
+        } else { // Expert AI - sophisticated strategy
+            // Profitable call calculation
+            boolean profitableCall = potOdds < winProbability;
+
+            if (winProbability < 0.2 && currentBet > 0) {
+                return BettingAction.FOLD;
+            }
+            if (winProbability < 0.3 && random.nextInt(100) < 15 && pot > 100) {
+                return currentBet == 0 ? BettingAction.BET : BettingAction.RAISE; // Occasional bluff
+            }
+            if (winProbability > 0.8 && random.nextInt(100) < 40 && stage == RoundStage.RIVER) {
+                return BettingAction.ALL_IN; // Strong hand, go all-in
+            }
+            if (winProbability > 0.65) {
+                return currentBet == 0 ? BettingAction.BET : BettingAction.RAISE;
+            }
+            if (profitableCall) {
+                return currentBet == 0 ? BettingAction.CHECK : BettingAction.CALL;
+            }
+            return currentBet == 0 ? BettingAction.CHECK : BettingAction.FOLD;
+        }
+    }
+
+    // Keep all existing methods below unchanged
+    private BettingAction handleShortStackDecision(int handStrength, RoundStage stage) {
+        // Existing implementation
+        switch (difficulty) {
+            case 1: // 🔴 Beginner AI: Passive, plays safe
+                return (handStrength >= 7) ? BettingAction.ALL_IN : BettingAction.CALL;
+
+            case 2: // 🟠 Normal AI: Balanced, takes moderate risks
+                if (handStrength >= 7 || (stage == RoundStage.RIVER && random.nextInt(100) < 30)) {
+                    return BettingAction.ALL_IN;
+                }
+                return BettingAction.CHECK;
+
+            case 3: // 🟢 Expert AI: Aggressive, strategic bluffs
+                if (handStrength >= 6 || (stage == RoundStage.RIVER && random.nextInt(100) < 40)) {
+                    return BettingAction.ALL_IN;
+                }
+                return BettingAction.CHECK;
+        }
+        return BettingAction.CHECK; // Default safety return
+    }
+
+    // Keep other existing methods (decideOnRaise, decideAllInCall, etc.)
     public int decideOnRaise(int currentBet, int pot, HandRank aiHandRank) {
         int handStrength = HandEvaluator.getHandRankValue(aiHandRank.getRank());
         int aiChips = ai.getChips();
 
         if (handStrength < 3 && currentBet > aiChips / 3) {
-        int foldChance = difficulty == 1 ? 10 : (difficulty == 2 ? 30 : 50);
-        if (random.nextInt(100) < foldChance) return currentBet; // AI calls more often
-        return -1; // Otherwise, AI folds (only sometimes)
+            int foldChance = difficulty == 1 ? 10 : (difficulty == 2 ? 30 : 50);
+            if (random.nextInt(100) < foldChance) return currentBet; // AI calls more often
+            return -1; // Otherwise, AI folds (only sometimes)
         }
 
 
@@ -87,52 +169,24 @@ public class PokerAI {
 
     public int decideAllInCall(int currentBet, int pot, HandRank aiHandRank, int difficulty) {
         int handStrength = HandEvaluator.getHandRankValue(aiHandRank.getRank());
-
-        // Consider Pot Odds for decision
         double potOdds = (double) currentBet / (pot + currentBet);
 
         switch (difficulty) {
             case 1:
-                if (handStrength < 6 || potOdds > 0.5) return 2; // Fold if hand is weak or risk is high
-                return 1; // Call if hand is decent
-
+                if (handStrength < 6 || potOdds > 0.5) return 2; // Fold
+                return 1; // Call
             case 2:
-                if (handStrength >= 7 || potOdds < 0.4) return 1; // Call with good hand or low risk
-                return 2; // Otherwise fold
-
+                if (handStrength >= 7 || potOdds < 0.4) return 1;
+                return 2;
             case 3:
-                if (handStrength >= 5 || potOdds < 0.6) return 1; // More willing to call
-                return 2; // Otherwise, fold
-
+                if (handStrength >= 5 || potOdds < 0.6) return 1;
+                return 2;
             default:
                 return 1; // Default to calling
         }
     }
-
-
-
-    // 🔹 Handles AI betting when it has fewer chips than the current bet
-    private BettingAction handleShortStackDecision(int handStrength, RoundStage stage) {
-        switch (difficulty) {
-            case 1: // 🔴 Beginner AI: Passive, plays safe
-                return (handStrength >= 7) ? BettingAction.ALL_IN : BettingAction.CALL;
-
-            case 2: // 🟠 Normal AI: Balanced, takes moderate risks
-                if (handStrength >= 7 || (stage == RoundStage.RIVER && random.nextInt(100) < 30)) {
-                    return BettingAction.ALL_IN;
-                }
-                return BettingAction.CHECK;
-
-            case 3: // 🟢 Expert AI: Aggressive, strategic bluffs
-                if (handStrength >= 6 || (stage == RoundStage.RIVER && random.nextInt(100) < 40)) {
-                    return BettingAction.ALL_IN;
-                }
-                return BettingAction.CHECK;
-        }
-        return BettingAction.CHECK; // Default safety return
-    }
-
-    // 🔹 Handles AI betting when it has enough chips to play normally
+}
+ /*   // 🔹 Handles AI betting when it has enough chips to play normally
     private BettingAction handleRegularBetting(int handStrength, int aiChips, int currentBet, int pot, RoundStage stage) {
 //        System.out.println("\n[DEBUG] Regular Betting Analysis:");
 //        System.out.println("  - AI Chips: " + aiChips);
@@ -216,3 +270,4 @@ public class PokerAI {
         return BettingAction.CHECK; // Default safety return
     }
 }
+*/

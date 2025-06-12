@@ -134,13 +134,18 @@ public class RoundManager {
             return -1;
 
             case ALL_IN:
-            int allInAmount = Math.min(player.getChips(), currentBet);
+                int allInAmount = player.getChips();
                 System.out.println(player.getName() + " goes ALL-IN with " + allInAmount + " chips!");
                 if (isAI) aiAllIn = true;
                 else playerAllIn = true;
+
+                // Deduct all remaining chips and grow the pot
                 player.moneyLost();
                 pot += allInAmount;
-                return allInAmount;
+
+                // Return the greater of the previous bet or the all-in wager so
+                // the opponent knows how much to match at minimum
+                return Math.max(currentBet, allInAmount);
 
             case RAISE:
                 int raiseAmount;

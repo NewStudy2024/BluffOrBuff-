@@ -23,6 +23,21 @@ public class HandEvaluatorTest {
     }
 
     @Test
+    public void testRoyalFlushFromSevenCards() {
+        List<Card> hand = List.of(
+                new Card(Card.Rank.TEN, Card.Suit.SPADES),
+                new Card(Card.Rank.JACK, Card.Suit.SPADES),
+                new Card(Card.Rank.QUEEN, Card.Suit.SPADES),
+                new Card(Card.Rank.KING, Card.Suit.SPADES),
+                new Card(Card.Rank.ACE, Card.Suit.SPADES),
+                new Card(Card.Rank.TWO, Card.Suit.CLUBS),
+                new Card(Card.Rank.THREE, Card.Suit.DIAMONDS)
+        );
+        HandRank result = HandEvaluator.evaluateHand(hand);
+        assertEquals("Royal Flush", result.getRank());
+    }
+
+    @Test
     public void testStraightFlush() {
         List<Card> straightFlush = List.of(
                 new Card(Card.Rank.SIX, Card.Suit.CLUBS),
@@ -32,6 +47,21 @@ public class HandEvaluatorTest {
                 new Card(Card.Rank.TEN, Card.Suit.CLUBS)
         );
         HandRank result = HandEvaluator.evaluateHand(straightFlush);
+        assertEquals("Straight Flush", result.getRank());
+    }
+
+    @Test
+    public void testStraightFlushFromSevenCards() {
+        List<Card> hand = List.of(
+                new Card(Card.Rank.TWO, Card.Suit.HEARTS),
+                new Card(Card.Rank.THREE, Card.Suit.HEARTS),
+                new Card(Card.Rank.FOUR, Card.Suit.HEARTS),
+                new Card(Card.Rank.FIVE, Card.Suit.HEARTS),
+                new Card(Card.Rank.SIX, Card.Suit.HEARTS),
+                new Card(Card.Rank.KING, Card.Suit.CLUBS),
+                new Card(Card.Rank.NINE, Card.Suit.DIAMONDS)
+        );
+        HandRank result = HandEvaluator.evaluateHand(hand);
         assertEquals("Straight Flush", result.getRank());
     }
 

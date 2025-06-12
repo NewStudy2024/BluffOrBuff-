@@ -34,6 +34,7 @@ public class HandEvaluator {
         return hand.stream()
                 .map(c -> c.getRank().ordinal())
                 .sorted(Comparator.reverseOrder())
+                .limit(5)
                 .toList();
     }
 
@@ -122,13 +123,47 @@ public class HandEvaluator {
         return false;
     }
 
+    private static List<List<Card>> getFiveCardCombos(List<Card> hand) {
+        List<List<Card>> combos = new ArrayList<>();
+        int n = hand.size();
+        if (n < 5) {
+            combos.add(new ArrayList<>(hand));
+            return combos;
+        }
+        for (int i = 0; i < n - 4; i++) {
+            for (int j = i + 1; j < n - 3; j++) {
+                for (int k = j + 1; k < n - 2; k++) {
+                    for (int l = k + 1; l < n - 1; l++) {
+                        for (int m = l + 1; m < n; m++) {
+                            combos.add(List.of(
+                                    hand.get(i), hand.get(j), hand.get(k),
+                                    hand.get(l), hand.get(m)));
+                        }
+                    }
+                }
+            }
+        }
+        return combos;
+    }
+
     private static boolean isStraightFlush(List<Card> hand) {
-        return isFlush(hand) && isStraight(hand);
+        for (List<Card> combo : getFiveCardCombos(hand)) {
+            if (isFlush(combo) && isStraight(combo)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isRoyalFlush(List<Card> hand) {
         List<Card.Rank> royalRanks = List.of(Card.Rank.TEN, Card.Rank.JACK, Card.Rank.QUEEN, Card.Rank.KING, Card.Rank.ACE);
-        return isStraightFlush(hand) && hand.stream().allMatch(card -> royalRanks.contains(card.getRank()));
+        for (List<Card> combo : getFiveCardCombos(hand)) {
+            if (combo.stream().allMatch(card -> royalRanks.contains(card.getRank()))
+                    && isFlush(combo) && isStraight(combo)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static int getPreFlopHandStrength(List<Card> holeCards) {

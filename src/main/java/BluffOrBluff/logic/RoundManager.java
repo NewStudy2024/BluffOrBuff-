@@ -97,7 +97,7 @@ public class RoundManager {
 
     private void resetRound() {
         // Reuse existing deck instead of creating new one for better performance
-        if (deck.cardsLeft() < 10) { // Only create new deck if running low on cards
+        if (deck.cardsLeft() < 12) { // Only create new deck if running low on cards
             this.deck = new Deck();
         } else {
             deck.shuffle(); // Just reshuffle existing deck
